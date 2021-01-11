@@ -9,9 +9,9 @@ func NewView(files ...string) *View {
 		panic(err)
 	}
 
-	return &View(
+	return &View{
 		Template: t,
-	)
+	}
 }
 
 type View struct {
