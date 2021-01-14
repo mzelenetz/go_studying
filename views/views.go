@@ -3,6 +3,7 @@ package views
 import (
 	"html/template"
 	"path/filepath"
+	"net/http"
 )
 
 var (
@@ -31,7 +32,7 @@ type View struct {
 
 // Render is used to to render the view with predefined layout
 func (v *View) Render(w http.ResponseWriter, data interface{}) error {
-	reutrn v.Template.ExecuteTemplate(w, v.Layout, data)
+	return v.Template.ExecuteTemplate(w, v.Layout, data)
 }
 
 // layoutFiles returns a slice of strings with
