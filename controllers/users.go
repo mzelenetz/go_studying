@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"../views"
+	"github.com/gorilla/schema"
 )
 
 // Putting this here is for consistency later
@@ -30,10 +31,25 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 	u.NewView.Render(w, nil)
 }
 
+type SignupForm struct {
+	Email 		string `json:"email"`
+	Password    string `json:"password"`
+}
+
 // Create processes the signup form when a user sumbits it
 // Creates a new user account
 //
 // POST /signup
 func (u *Users) Create(w http.ResponseWriter, r *http.Request){
-	fmt.Fprintln(w, "This is a temporary response")
+	if err := r.ParseForm(); err != nil{
+		panic(err)
+	}
+
+	dec := schema.NewDecoder()
+	var form SignupForm
+	if err := dec.Decode(&form, r.PostForm); err != nil{
+		panic(err)
+	}
+	fmt.Fprintln(w, form)
 }
+
