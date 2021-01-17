@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"../views"
 )
@@ -21,6 +22,18 @@ type Users struct {
 	NewView *views.View
 }
 
+// New is used to render the form where a user can create a 
+// new user account
+//
+// GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 	u.NewView.Render(w, nil)
+}
+
+// Create processes the signup form when a user sumbits it
+// Creates a new user account
+//
+// POST /signup
+func (u *Users) Create(w http.ResponseWriter, r *http.Request){
+	fmt.Fprintln(w, "This is a temporary response")
 }
