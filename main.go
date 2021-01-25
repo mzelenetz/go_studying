@@ -32,6 +32,7 @@ func main(){
 	us, err := models.NewUserService(psqlInfo)
 	must(err)
 	defer us.Close()
+	us.DestructiveReset()
 	us.AutoMigrate()
  
 	staticC := controllers.NewStatic()
@@ -40,8 +41,10 @@ func main(){
 	r := mux.NewRouter()
 	r.Handle("/", staticC.HomeView).Methods("GET")
 	r.Handle("/contact", staticC.ContactView).Methods("GET")
-	r.HandleFunc("/signup", usersC.New).Methods("GET")
+	r.Handle("/signup", usersC.NewView).Methods("GET")
 	r.HandleFunc("/signup", usersC.Create).Methods("POST")
+	r.Handle("/login", usersC.LoginView).Methods("GET")
+	r.HandleFunc("/login", usersC.Login).Methods("POST")
 	http.ListenAndServe(":3000", r)
 }
 
