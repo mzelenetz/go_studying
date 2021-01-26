@@ -77,6 +77,26 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
 	}
-	// Do something with the login form
-	fmt.Fprintln(w, form)
+
+	user, err := u.us.Authenticate(form.Email, form.Password)
+	if err != nil {
+		switch err {
+		case models.ErrInvalidPassword:
+			fmt.Fprintln(w, "Invalid Password Provided")
+		case models.ErrNotFound:
+			fmt.Fprintln(w, "Invalid Email Address")
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+
+
+	cookie := http.Cookie{
+		Name: "email",
+		Value: user.Email,
+	}
+
+	http.SetCookie(w, &cookie)
+	fmt.Fprintln(w, user)
+
 }
