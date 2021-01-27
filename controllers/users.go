@@ -60,7 +60,9 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request){
 	if err := u.us.Create(&user); err != nil{
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	fmt.Fprintln(w, user)
+
+	signIn(w, &user)
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
 
 type LoginForm struct {
@@ -91,14 +93,16 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 
+	signIn(w, user)
+	http.Redirect(w, r, "/cookietest", http.StatusFound)
+}
+
+func signIn(w http.ResponseWriter, user *models.User) {
 	cookie := http.Cookie{
 		Name: "email",
 		Value: user.Email,
 	}
-
 	http.SetCookie(w, &cookie)
-	fmt.Fprintln(w, user)
-
 }
 
 // COokieTest is used to display cookies set on the current user
