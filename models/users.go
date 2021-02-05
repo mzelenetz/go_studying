@@ -174,12 +174,16 @@ func (uv *userValidator) hmacRemember(user *User) error {
 }
 
 // Delete the user with the provided ID
-func (uv *userValidator) Delete(id uint) error{
+func (uv *userValidator) Delete(id uint) error {
 	// if you pass a 0 id, gorm will delete all users
 	// we must check that the user exists 
-	if id == 0 {
-		return ErrInvalidID
-	}
+	var user User
+	user.ID = id
+
+	err := runUserValFuncs(&user, uv.idGreaterThanZero)
+   if err != nil {
+	   return err
+   }
 	return uv.UserDB.Delete(id)
 }
 
@@ -210,6 +214,15 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 		return err
 	}
 	user.Remember = token
+	return nil
+}
+
+func (uv *userValidator) idGreaterThanZero(user *User) error {
+	// if you pass a 0 id, gorm will delete all users
+	// we must check that the user exists 
+	if user.ID <= 0 {
+		return ErrInvalidID
+	}
 	return nil
 }
 
