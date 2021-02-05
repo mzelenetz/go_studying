@@ -143,15 +143,8 @@ func (uv *userValidator) ByRemember(token string) (*User, error) {
 }
 
 func (uv *userValidator) Create(user *User) error {
-	if user.Remember == "" {
-		token, err := rand.RememberToken()
-		if err != nil  {
-			return err
-		}
-		user.Remember = token
-	}
-
-	err := runUserValFuncs(user, uv.bcryptPassword, uv.hmacRemember)
+	err := runUserValFuncs(user, uv.bcryptPassword, uv.setRememberIfUnset,
+		 uv.hmacRemember)
 	if err != nil {
 		return err
 	}
@@ -161,7 +154,8 @@ func (uv *userValidator) Create(user *User) error {
 // Update will update the provided user with all of the
 // data in the user object
 func (uv *userValidator) Update(user *User) error {
-	err := runUserValFuncs(user, uv.bcryptPassword, uv.hmacRemember)
+	err := runUserValFuncs(user, uv.bcryptPassword,
+		 uv.hmacRemember)
 	if err != nil {
 		return err
 	}
@@ -204,6 +198,18 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	}
 	user.PasswordHash = string(hashedBytes)
 	user.Password = "" // This isn't required, it's to prevent accidentally writing passwords to logs
+	return nil
+}
+
+func (uv *userValidator) setRememberIfUnset(user *User) error {
+	if user.Remember != ""{
+		return nil
+	}
+	token, err := rand.RememberToken()
+	if err != nil {
+		return err
+	}
+	user.Remember = token
 	return nil
 }
 
