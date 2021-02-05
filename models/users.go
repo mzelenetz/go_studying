@@ -116,6 +116,8 @@ type userValidator struct {
 	UserDB
 }
 
+
+
 func newUserGorm(connectionInfo string) (*userGorm, error){
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil {
@@ -215,6 +217,7 @@ func (ug *userGorm) Update(user *User) error {
 	}
 
 	return ug.db.Save(user).Error
+
 }
 
 // Delete the user with the provided ID
