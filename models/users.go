@@ -40,6 +40,13 @@ var (
 	// a user password
 	ErrPasswordRequired = errors.New("models: Password is required")
 
+	// ErrRememberTooShort is returned when a remember token is not at least 32 bytes
+	ErrRememberTooShort = errors.New("models: remember token must be at least 32 bytes.")
+
+	//ErrRememberRequired is returned when a create or update is
+	// attempted without a user remember token hash.
+	ErrRememberRequired = errors.New("models: Remember token is required")
+
 
 	// match email addresses. not perfect but good enough
 	emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@` + `[a-z0-9.\-]+\.[a-z]{2,16}$`)
@@ -189,8 +196,10 @@ func (uv *userValidator) Create(user *User) error {
 		uv.passwordMinLength,
 		uv.bcryptPassword, 
 		uv.setRememberIfUnset,
+		uv.rememberMinBytes,
 		uv.passwordHashRequired,
 		uv.hmacRemember,
+		uv.rememberHashRequired,
 		uv.normalizeEmail,
 		uv.requireEmail,
 		uv.emailFormat,
@@ -207,8 +216,10 @@ func (uv *userValidator) Update(user *User) error {
 	err := runUserValFuncs(user,
 		uv.passwordMinLength,
 		uv.bcryptPassword,
-		uv.hmacRemember,
 		uv.passwordHashRequired,
+		uv.rememberMinBytes,
+		uv.hmacRemember,
+		uv.rememberHashRequired,
 		uv.normalizeEmail,
 		uv.emailFormat,
 		uv.emailIsAvail)
@@ -278,6 +289,13 @@ func (uv *userValidator) passwordRequired(user *User) error {
 	return nil
 }
 
+func (uv *userValidator) rememberHashRequired(user *User) error {
+	if user.RememberHash == "" {
+		return ErrRememberRequired
+	}
+	return nil
+}
+
 func (uv *userValidator) passwordHashRequired(user *User) error {
 	if user.PasswordHash == "" {
 		return ErrPasswordRequired
@@ -296,6 +314,22 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 	user.Remember = token
 	return nil
 }
+
+
+func (uv *userValidator) rememberMinBytes(user *User) error {
+	if user.Remember == ""{
+		return nil
+	}
+	n, err := rand.NBytes(user.Remember)
+	if err != nil {
+		return err
+	}
+	if n < 32 {
+		return ErrRememberTooShort
+	}
+	return nil
+}
+
 
 func (uv *userValidator) idGreaterThanZero(user *User) error {
 	// if you pass a 0 id, gorm will delete all users
