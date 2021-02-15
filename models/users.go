@@ -17,10 +17,11 @@ var (
 	ErrNotFound = errors.New("models: resource not found")
 
 	// ErrInvalidID is returned when an invalid ID passed to a method like delete
-	ErrInvalidID = errors.New("models: ID Provided is invalid")
+	ErrIDInvalid = errors.New("models: ID Provided is invalid")
 
-	//
-	ErrInvalidPassword = errors.New("models: incorrect password provided")
+	// ErrPasswordIncorrect is returned when a user attempts to log in
+	// with the wrong password
+	ErrPasswordIncorrect = errors.New("models: incorrect password provided")
 
 	// ErrEmailRequired is returned when an email address is not provided when creating a user
 	ErrEmailRequired = errors.New("models: Email Address is Required")
@@ -31,6 +32,15 @@ var (
 	// ErrEmailTaken is returned when the email is already in use
 	ErrEmailTaken = errors.New("models: Email address is already taken")
 	
+	// ErrPasswordTooShort is returned when an update or create is 
+	// attempted with a user password that is less than 8 characters
+	ErrPasswordTooShort = errors.New("models: Password must be at least 8 characters long")
+
+	// ErrPasswordRequired is returned when a create is attempted without
+	// a user password
+	ErrPasswordRequired = errors.New("models: Password is required")
+
+
 	// match email addresses. not perfect but good enough
 	emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@` + `[a-z0-9.\-]+\.[a-z]{2,16}$`)
 )
@@ -81,7 +91,7 @@ type UserDB interface {
 type UserService interface {
 	// Authenticate will verity the provided email address and password are correct.
 	// If they are correct, the user corresponding to that email will be returned
-	// otherwise you will recieve ErrNotFound, ErrInvalidPassword or other error if something goes wrong
+	// otherwise you will recieve ErrNotFound,	ErrPasswordIncorrect or other error if something goes wrong
 	Authenticate(email, password string) (*User, error)
 	UserDB
 }
@@ -94,10 +104,6 @@ func NewUserService(connectionInfo string) (UserService, error) {
 	// this old line was in newUserGorm
 	hmac := hash.NewHMAC(hmacSecretKey)
 	uv := newUserValidator(ug, hmac)
-	// uv := &userValidator{
-	//   hmac:   hmac,
-	//   UserDB: ug,
-	// }
 	return &userService{
 	  UserDB: uv,
 	}, nil
@@ -120,7 +126,7 @@ func (us *userService) Authenticate(email, password string) (*User, error){
 	if err != nil {	
 		switch err{
 		case bcrypt.ErrMismatchedHashAndPassword:
-			return nil, ErrInvalidPassword
+			return nil, ErrPasswordIncorrect
 		default:
 			return nil, err
 		}
@@ -179,8 +185,11 @@ func (uv *userValidator) ByRemember(token string) (*User, error) {
 
 func (uv *userValidator) Create(user *User) error {
 	err := runUserValFuncs(user, 
+		uv.passwordRequired,
+		uv.passwordMinLength,
 		uv.bcryptPassword, 
 		uv.setRememberIfUnset,
+		uv.passwordHashRequired,
 		uv.hmacRemember,
 		uv.normalizeEmail,
 		uv.requireEmail,
@@ -195,8 +204,11 @@ func (uv *userValidator) Create(user *User) error {
 // Update will update the provided user with all of the
 // data in the user object
 func (uv *userValidator) Update(user *User) error {
-	err := runUserValFuncs(user, uv.bcryptPassword,
+	err := runUserValFuncs(user,
+		uv.passwordMinLength,
+		uv.bcryptPassword,
 		uv.hmacRemember,
+		uv.passwordHashRequired,
 		uv.normalizeEmail,
 		uv.emailFormat,
 		uv.emailIsAvail)
@@ -249,6 +261,30 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	return nil
 }
 
+func (uv *userValidator) passwordMinLength(user *User) error {
+	if user.Password == "" {
+		return nil
+	}
+	if len(user.Password) < 8 {
+		return ErrPasswordTooShort
+	}
+	return nil
+}
+
+func (uv *userValidator) passwordRequired(user *User) error {
+	if user.Password == "" {
+		return ErrPasswordRequired
+	}
+	return nil
+}
+
+func (uv *userValidator) passwordHashRequired(user *User) error {
+	if user.PasswordHash == "" {
+		return ErrPasswordRequired
+	}
+	return nil
+}
+
 func (uv *userValidator) setRememberIfUnset(user *User) error {
 	if user.Remember != ""{
 		return nil
@@ -265,7 +301,7 @@ func (uv *userValidator) idGreaterThanZero(user *User) error {
 	// if you pass a 0 id, gorm will delete all users
 	// we must check that the user exists 
 	if user.ID <= 0 {
-		return ErrInvalidID
+		return ErrIDInvalid
 	}
 	return nil
 }

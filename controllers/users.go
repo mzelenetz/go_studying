@@ -64,7 +64,8 @@ func (u *Users) Create(w http.ResponseWriter, r *http.Request){
 
 	err := u.signIn(w, &user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// Check that this is correct
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
@@ -88,7 +89,7 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := u.us.Authenticate(form.Email, form.Password)
 	if err != nil {
 		switch err {
-		case models.ErrInvalidPassword:
+		case models.ErrPasswordIncorrect:
 			fmt.Fprintln(w, "Invalid Password Provided")
 		case models.ErrNotFound:
 			fmt.Fprintln(w, "Invalid Email Address")
@@ -100,8 +101,8 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 
 	err = u.signIn(w, user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	  http.Error(w, err.Error(), http.StatusInternalServerError)
+	  return
 	}
 	http.Redirect(w, r, "/cookietest", http.StatusFound)
 }
